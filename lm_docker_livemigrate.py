@@ -193,6 +193,7 @@ class live_migrate:
 				   self.container_id +'#'
 #		send_dump_image_start = time.time()
 		lm_socket.send_msg(msg_dump)
+		logging.info('dump image send img start time id %s :' %time.time())
 		lm_socket.send_file(dump_image)
 #		send_dump_image_end = time.time()
 		logging.info('dump image send success time is %s :' %time.time())

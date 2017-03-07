@@ -10,12 +10,22 @@ from lm_docker_check import lm_docker_check
 
 
 
-def lz4_tarfile(level, input_name='pages-1.img',output_name='memory.lz4'):
-	cmd = 'lz4 -' + level + ' ' + input_name + ' ' + output_name
-	logging.debug(cmd)
-	sp.call(cmd, shell=True)
-	os.remove(input_name)
+#def lz4_tarfile(level, input_name='pages-3.img',output_name='memory.lz4'):
+#	cmd = 'lz4 -' + level + ' ' + input_name + ' ' + output_name
+#	logging.debug(cmd)
+#	sp.call(cmd, shell=True)
+#	os.remove(input_name)
 
+def lz4_tarfile(level,input_dir='./'):
+	for root, subFolders, files in os.walk(input_dir):
+		for f in files:
+			if f.find('pages') != -1:
+				input_name = f
+				output_name = input_name + '.lz4'
+				cmd = 'lz4 -' + level + ' ' + input_name + ' ' + output_name
+				logging.debug(cmd)
+				sp.call(cmd,shell=True)
+				os.remove(input_name)
 
 class lm_docker_memory:
 	def __init__(self, task_id):

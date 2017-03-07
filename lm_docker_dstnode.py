@@ -12,11 +12,23 @@ from lm_docker_util import *
 from lm_docker_fs import lm_docker_filesystem
 from lm_docker_mem import lm_docker_memory
 
-def lz4_extractfile(input_name = 'memory.lz4', output_name = 'pages-1.img'):
-	cmd_sh = 'lz4 -d ' + input_name + ' ' + output_name
-	logging.info(cmd_sh)
-	sp.call(cmd_sh, shell = True)
-	os.remove(input_name)
+#def lz4_extractfile(input_name = 'memory.lz4', output_name = 'pages-3.img'):
+#	cmd_sh = 'lz4 -d ' + input_name + ' ' + output_name
+#	logging.info(cmd_sh)
+#	sp.call(cmd_sh, shell = True)
+#	os.remove(input_name)
+
+def lz4_extractfile(input_dir = './'):
+	for root, subFolders, files in os.walk(input_dir):
+		for f in files:
+			if f.find('.lz4') != -1:
+				input_name = f
+				length = len(f)
+				output_name = f[0:length-4]
+				cmd = 'lz4 -d ' + input_name + ' ' + output_name
+				logging.info(cmd)
+				sp.call(cmd,shell=True)
+				os.remove(input_name)
 
 
 class destination_node:
