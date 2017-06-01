@@ -1,5 +1,18 @@
 #!usr/bin
 #encoding: utf-8
+"""This is the main function file, use this file to do the live migration.
+
+How to use:
+    sudo python lm_docker.py [argv]
+
+Example:
+    Source Node:
+	    check the env is satisfied the migrate or not.----> sudo python lm_docker.py check
+		migrate the docker container.----> sudo python lm_docker.py migrate [container] -t [dst_ip]
+	Destination Node:
+		start the server to accept container.----> sudo python lm_docker.py service -l
+
+"""
 
 import sys
 import logging
@@ -64,7 +77,13 @@ def parase(argv):
 			lmigrate = live_migrate(container_name, dst_ip)
 		    
 			ret = lmigrate.run()
-
+	
+	if ret is False:
+		logging.error('service failed')
+		return False
+	return True
+		
+'''
 	if argv_len = 6:
 	    if opt == 'migrate':
 		    container_name = argv[1]
@@ -82,14 +101,9 @@ def parase(argv):
 				return False
 			server = server_node(src_ip)
 		    server.run()
-		    
+'''		    
 
 
-
-	if ret is False:
-		logging.error('service failed')
-		return False
-	return True
 
 if __name__ == '__main__':
 	logging.basicConfig(level=logging.INFO)
