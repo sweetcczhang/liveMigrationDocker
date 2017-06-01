@@ -63,7 +63,7 @@ class lm_docker_memory:
 	def dump_image_path(self):
 		return self.workdir() + self.task_id + '-dump.tar'
 	
-	'''change the last predump dir name to 'predump' '''
+	#----change the last predump dir name to 'predump'----#
 	def rename(self):
 		os.rename(self.predump_name(),'predump')
 
@@ -93,9 +93,9 @@ class lm_docker_memory:
 		else:
 			append_cmd = ''
 		predump_sh = 'docker checkpoint --image-dir=' + dir_path +\
-                             ' --work-dir=' + work_path +\
-					 ' --pre-dump --allow-tcp=true --leave-running ' + append_cmd +\
-					 ' ' + container_id
+                     ' --work-dir=' + work_path +\
+					 ' --pre-dump --allow-shell=true --allow-tcp=true --leave-running ' +\
+					 append_cmd + ' ' + container_id
 		logging.debug(predump_sh)
 		
 		out_msg = sp.call(predump_sh, shell=True)
@@ -119,7 +119,9 @@ class lm_docker_memory:
 			return False
 		return True
 
-	'''dump checkpoint op used in last dump step, get the last dirty pages and running states.'''
+	'''dump checkpoint op used in last dump step,
+	   get the last dirty pages and running states.
+	'''
 	def dump(self,pid,container_id):
 		os.chdir(self.workdir())
 		dump_time_start = time.time()

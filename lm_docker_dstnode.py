@@ -58,7 +58,7 @@ def lz4_extractfile(input_dir = './'):
 				length = len(f)
 				output_name = f[0:length-4]
 				cmd = 'lz4 -d ' + input_name + ' ' + output_name
-				logging.info(cmd)
+				logging.debug(cmd)
 				sp.call(cmd,shell=True)
 				os.remove(input_name)
 
@@ -138,10 +138,10 @@ class destination_node:
 		image_dir = self.workdir() +'/dump'
 		parent_path = self.workdir() +'/predump'
 
-		if(os.path.isFile(image_dir + inetsk_img)):
+		if(check_file(image_dir + inetsk_img)):
 			'''do the map operate to the inetsk.img, change the TCP socket src_ip to dst_ip.'''
-			decode_sh = 'sudo ' + crit_bin + ' decode -i ' + image_dir +\ 
-			   inetsk_img + ' -o ' + inetsk_log
+			decode_sh = 'sudo ' + crit_bin + ' decode -i ' + image_dir +\
+						inetsk_img + ' -o ' + inetsk_log
 			p = sp.Popen(decode_sh,shell=True,stdin=sp.PIPE,stdout=sp.PIPE,stderr=sp.PIPE)
 			p.stdin.write('123456\n')
 			ret = p.wait()
@@ -167,7 +167,7 @@ class destination_node:
 		restore_op = 'docker restore --force=true --allow-shell=true --allow-tcp=true' +\
 					 ' --work-dir=' + image_dir +\
 					 ' --image-dir=' + image_dir + ' ' + self.container_id
-	    logging.debug(restore_op)
+#	    logging.debug(restore_op)
 		ready_time_end = time.time()
 		logging.info('restore ready time end is %s :' %ready_time_end)
 		sp_call_start = time.time()

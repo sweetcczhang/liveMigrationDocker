@@ -28,6 +28,7 @@ from lm_docker_util import *
 from lm_docker_client import lm_docker_socket
 from lm_docker_fs import lm_docker_filesystem
 from lm_docker_mem import lm_docker_memory
+
 BUF_SIZE = 1024
 
 
@@ -76,6 +77,7 @@ def sizeof_format(num,suffix = 'B'):
 class live_migrate:
 	def __init__(self, container_name, dst_ip):
 		self.dst_ip = dst_ip
+		self.src_ip = socket.gethostbyname(socket.gethostname())
 		self.container_name = container_name
 		self.task_id = random_str()
 		self.container_id, self.label, self.pid = get_container_info(container_name)
@@ -96,6 +98,7 @@ class live_migrate:
 
 	"""
 	def run(self):
+		logging.info('container info stored in /var/lib/docker/tmp/%s' %self.task_id) 
 		start_time = time.time()
 		logging.info('migrate start time : %s' %start_time)
 
@@ -142,14 +145,16 @@ class live_migrate:
 		'''
 		while(flag_precopy):
 			'''in each loop, first do the predump op.
-			   input args 'is_transfer' means whether the last predump info is transfer or not. '''
+			   input args 'is_transfer' means whether the last predump info is transfer or not.
+			'''
 			if not livemigrate_handle.predump(self.container_id,is_transfer):
 				return False
 			predump_image = livemigrate_handle.predump_image_path()
 			predump_size = os.path.getsize(predump_image)
 
-            '''if the first predump, send the dump files.
-			   assignment the last_trans_time,last_dirty_size, and let is_transfer=True'''
+			'''if the first predump, send the dump files.
+			   assignment the last_trans_time,last_dirty_size, and let is_transfer=True
+			'''
 			if(count == 1):
 				msg_predump = 'predump#' + livemigrate_handle.predump_name() + \
 							  '#' + str(predump_size) + '#'
@@ -163,12 +168,11 @@ class live_migrate:
 				last_trans_time = send_predump_image_end - send_predump_image_start
 				last_dirty_size = predump_size
 				is_transfer = True
-#				logging.info('predump image size is : %s ' %sizeof_format(predump_size))
-#				logging.info('measure bandwidth is : %s /s' %sizeof_format((predump_size*8)/(send_predump_image_time)))
-
-			'''if count equals the MAX_LOOP, send the dump files and stop the loop.'''
-			elif(count == 30):	
-			    '''send the predump files to the dst node'''
+				logging.debug('predump image size is : %s ' %sizeof_format(last_dirty_size))
+				logging.debug('measure bandwidth is : %s /s' %sizeof_format((last_dirty_size*8)/(last_trans_time)))
+			
+			elif(count == 30):
+				#----if count equals the MAX_LOOP, send the predump files and stop the loop.----#
 				msg_predump = 'predump#' + livemigrate_handle.predump_name() + \
 							  '#' + str(predump_size) + '#'
 				logging.debug(msg_predump)
@@ -184,12 +188,12 @@ class live_migrate:
 				logging.info('predump loop end.')
 				livemigrate_handle.rename()
 			
-			'''if the dirty ratio is too large, we do not tranfer this predump files.'''
 #			elif(predump_size >= last_dirty_size*0.95 and is_transfer):
+#				'''if the dirty ratio is too large, we do not tranfer this predump files.'''
 #				count+=1
 #				is_transfer = False
 			else:
-				'''send the predump files to the dst node'''
+				#----send the predump files to the dst node----#
 				msg_predump = 'predump#' + livemigrate_handle.predump_name() + \
 								'#' + str(predump_size) + '#'
 				logging.debug(msg_predump)
@@ -204,12 +208,13 @@ class live_migrate:
 				logging.debug('measure bandwidth is : %s /s' %sizeof_format((predump_size*8)/(last_trans_time)))
 				count+=1
 				is_transfer = True
-				'''if the dirty pages < threshold, stop the pre-copy loop.'''
+				#----if the dirty pages < threshold, stop the pre-copy loop.----#
 				if((predump_size/last_dirty_size)*last_trans_time <= 0.03):
 					flag_precopy = False
 		
 		'''do the last step,dump the change memory and running states
-		   send the dump image for dst node to restore the docker container.'''
+		   send the dump image for dst node to restore the docker container.
+		'''
 		logging.info('dump step start time is %s :' %time.time())
 		if not livemigrate_handle.dump(self.pid,self.container_id):
 			logging.error('Error: there is something wrong in the last dump step.')
@@ -217,32 +222,28 @@ class live_migrate:
 		dump_image = livemigrate_handle.dump_image_path()
 		dump_size = os.path.getsize(dump_image)
 
-		'''
-		send the sync file to the destination
-		'''
-#		sync_handle = lm_docker_filesystem(self.container_id,self.task_id)
-#		if not sync_handle.sync_file():
-#			logging.error('Error: sync file failed.')
-#			return False
-#		sync_image = sync_handle.sync_path()
-#		msg_sync = 'sync#' + str(os.path.getsize(sync_image)) +'#'
-#		logging.debug(msg_sync)
-#		lm_socket.send_msg(msg_sync)
-#		lm_socket.send_file(sync_image)
-#		data = lm_socket.recv_msg()
-#		logging.debug(data)
+		#----send the sync file to the destination----#
+		sync_handle = lm_docker_filesystem(self.container_id,self.task_id)
+		if not sync_handle.sync_file():
+			logging.error('Error: sync file failed.')
+			return False
+		sync_image = sync_handle.sync_path()
+		msg_sync = 'sync#' + str(os.path.getsize(sync_image)) +'#'
+		logging.debug(msg_sync)
+		lm_socket.send_msg(msg_sync)
+		lm_socket.send_file(sync_image)
+		data = lm_socket.recv_msg()
+		logging.debug(data)
 
 		#----send the dump image to the dst node----#
-		msg_dump = 'dump#' + str(dump_size) +'#' +\
+		msg_dump = 'dump#' + str(dump_size) + '#' +\
 				   livemigrate_handle.predump_name() +'#' +\
-                   str(self.pid) +'#'+\
-				   self.container_id +'#'
+                   str(self.pid) + '#' + self.container_id + '#' +\
+				   self.src_ip + '#' +self.dst_ip + '#'
 		lm_socket.send_msg(msg_dump)
 		logging.info('dump image send img start time id %s :' %time.time())
 		lm_socket.send_file(dump_image)
 		logging.info('dump image send success time is %s :' %time.time())
-		logging.debug('dump image size is : %s ' %sizeof_format(dump_size))
-		logging.debug('measure bandwidth is : %s /s' %sizeof_format((dump_size *8)/(send_dump_image_time)))
 		data = lm_socket.recv_msg()
 		logging.info('dump step source node receive msg time is %s :' %time.time())
 

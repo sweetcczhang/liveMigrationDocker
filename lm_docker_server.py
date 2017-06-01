@@ -51,15 +51,15 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 		length, = struct.unpack('!I',format_buf)
 		return self.request.recv(length)
 
-	'''override handler method to implement conmmunication with client.'''
+	#----override handler method to implement conmmunication with client.----#
 	def handle(self):
 		tmp = self.recv_msg()
-		logging.info ('tmp:' + tmp)
+		logging.debug ('tmp:' + tmp)
 		str_array = tmp.split('#')
 		dst_handle = destination_node()
 		cmd_type = str_array[0]
 
-		'''if the msg is init#...,call init_dst_node in lm_docker_dstnode to create a new container'''
+		#----if the msg is init#...,call init_dst_node to create a new container----#
 		if 'init' == cmd_type:
 			self.task_id = str_array[1]
 			self.label = str_array[2]
@@ -67,9 +67,11 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 			self.send_msg('init:success')
 			logging.info('get init msg success.')
 	
-		'''keep listening to recv msg or file from src node.'''
+		#----keep listening to recv msg or file from src node.----#
 		while(True):
-			'''client always send a msg before send files, use this msg to distinguish files type. '''
+			'''client always send a msg before send files
+			   use this msg to distinguish files type. 
+			'''
 			new_msg = self.recv_msg()
 			logging.debug(new_msg)
 			str_array = new_msg.split('#')
@@ -108,7 +110,8 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 				sync_time_end = time.time()
 			
 			'''if the beginning is predump, after recv files,
-			   call predump_restore to extract predump checkpoint files.'''
+			   call predump_restore to extract predump checkpoint files.
+			'''
 			if 'predump' == cmd_type:
 				predump_time_start = time.time()
 				predump_image = self.task_id + str_array[1] +'.tar'
@@ -125,7 +128,9 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 				dst_handle.predump_restore(predump_image,str_array[1])
 				predump_time_end = time.time()
 			
-			'''if the beginning is dump, after recv files, restore the container in dst node.'''	 
+			'''if the beginning is dump, after recv files,
+			   restore the container in dst node.
+			'''	 
 			if 'dump' == cmd_type:
 				dump_time_start = time.time()
 				dump_image = self.task_id + '-mm.tar'
@@ -133,6 +138,8 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 				last_predump_dir = str_array[2]
 				dump_pid = str_array[3]
 				last_container_id = str_array[4]
+				src_ip = str_array[5]
+				dst_ip = str_array[6]
 				logging.info('last dump size is : %s' %dump_size) 
 
 				if last_predump_dir != 'predump0':
@@ -144,7 +151,7 @@ class lm_docker_server(SocketServer.BaseRequestHandler):
 					msg_dump += 'failed'
 				self.send_msg(msg_dump)
 				logging.debug(msg_dump)
-				dst_handle.restore(dump_pid,dump_image,last_container_id)
+				dst_handle.restore(dump_pid,dump_image,last_container_id,src_ip,dst_ip)
 				dump_time_end = time.time()
 				self.send_msg('restore:success')
 				logging.info('send restore success msg time is %s :' %time.time())

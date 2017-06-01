@@ -30,6 +30,7 @@ import tarfile
 import shutil
 import logging
 import time
+
 from lm_docker_util import *
 
 
@@ -74,7 +75,7 @@ class lm_docker_filesystem:
 			os.mkdir(self.workdir())
 		layer_dir = base_dir + '/aufs/diff/'
 		
-		'''tar file in /$(container-id)/'''
+		#----tar file in /$(container-id)/----#
 		container_path = layer_dir + self.container_id
 		if not check_dir(container_path):
 			logging.error('Error: file path %s not exists' %container_path)
@@ -82,7 +83,7 @@ class lm_docker_filesystem:
 		container_tar = self.container_tar
 		self.tar_file_without_path(container_tar,container_path)
 
-		'''tar file in /$(container-id)-init/'''
+		#----tar file in /$(container-id)-init/----#
 		container_init_path = container_path +'-init'
 		if not check_dir(container_init_path):
 			logging.error('Error: init file path %s not exists' %container_init_path)
@@ -90,7 +91,7 @@ class lm_docker_filesystem:
 		container_init_tar = self.container_init_tar
 		self.tar_file_without_path(container_init_tar,container_init_path)
 
-		'''tar file in fs.tar'''
+		#----add container.tar and container-init.tar in fs.tar----#
 		os.chdir(self.workdir())
 		if not (check_file(container_tar) and check_file(container_init_tar)):
 			logging.error('Error:extract file system layer failed.')
@@ -109,6 +110,7 @@ class lm_docker_filesystem:
 		os.remove(container_init_tar)
 		return True
 
+	#----we assumed the container file operate only in /home dir, so in last only sync this dir----#
 	def sync_file(self):
 		mount_dir = base_dir + '/aufs/mnt/'
 		mount_path = mount_dir + self.container_id + '/home'
@@ -152,19 +154,18 @@ class lm_docker_filesystem:
 		sync_tar_file.close()
 		mount_tar = self.mount_tar
 
-		'''extract file into /var/lib/docker/aufs/mnt/$(container-id)/'''
+		#----extract file into /var/lib/docker/aufs/mnt/$(container-id)/----#
 		mount_path = base_dir + '/aufs/diff/' + self.container_id +'/home'
 		if not check_dir(mount_path):
 			logging.error('Error: dir %s is not exists.' %mount_path)
 			return False
 		self.extract_file_to_path(mount_tar,mount_path)
-		
 		return True
 
 
 	def extract_file(self):
 
-		'''extract file from fs.tar.gz'''
+		#----extract file from fs.tar.gz----#
 		os.chdir(self.workdir())
 		fs_tar_name = self.fs_tar_name
 		if not check_file(fs_tar_name):
@@ -181,14 +182,14 @@ class lm_docker_filesystem:
 			logging.error('Error: filesystem extract file failed, fs not exists.')
 			return False
 
-		'''extract file into /$(container-id)/'''
+		#----extract file into /$(container-id)/----#
 		container_path = base_dir + '/aufs/diff/' + self.container_id
 		if not check_dir(container_path):
 			logging.error('Error: dir %s is not exists.' %container_path)
 			return False
 		self.extract_file_to_path(container_tar,container_path)
 
-		'''extract file into /$(container-id)-init/'''
+		#----extract file into /$(container-id)-init/----#
 		container_init_path = container_path + '-init'
 		if not check_dir(container_init_path):
 			logging.error('Error: dir %s is not exists.' %container_init_path)

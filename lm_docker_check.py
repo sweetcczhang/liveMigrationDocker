@@ -24,7 +24,7 @@ def lm_docker_check():
 	print('\nOK, your system seems satisfied live migration environment.')
 	return True
 
-"""check the docker version."""
+#----check the docker version.----#
 def docker_check():
 	docker_version = sp.check_output('docker version',shell=True)
 	lines = docker_version.split('\n')
@@ -40,7 +40,7 @@ def docker_check():
 	print('docker_api_version: ' +docker_api_version)
 	return True
 
-"""check the criu version."""
+#----check the criu version.----#
 def criu_check():
 	out = sp.check_output('criu check',shell=True)
 	if 'Error' in out:
@@ -57,7 +57,7 @@ def criu_check():
 			return True
 	return False
 
-"""check docker unionFS is aufs or not."""
+#----check docker unionFS is aufs or not.----#
 def docker_py_check():
 	global docker_api_version
 	if isBlank(docker_api_version):
@@ -74,7 +74,7 @@ def docker_py_check():
 	logging.debug('docker py works')
 	return True
 
-"""check the kernel version"""
+#----check the kernel version----#
 def kernel_check():
 	logging.info('linux kernel check')
 	kernel_version = sp.check_output('uname -a',shell = True)
